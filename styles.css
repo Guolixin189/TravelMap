@@ -77,7 +77,7 @@ body {
 /* ========= Bottom prompt dock: search + chips, chat-style ========= */
 .prompt-dock {
   position: fixed;
-  bottom: 22px;
+  bottom: 44px;
   left: 0;
   right: 0;
   z-index: 1000;
@@ -506,7 +506,7 @@ h3 {
     top: 14px;
   }
   .prompt-dock {
-    bottom: 16px;
+    bottom: 30px;
   }
   /* Keep the zoom pills clear of the bottom dock on small screens */
   #map .ol-zoom {
