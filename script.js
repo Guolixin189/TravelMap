@@ -942,12 +942,12 @@ async function run() {
     } catch {}
 
     // Geocode (direct-hit cities already carry coordinates;
-    // fact answers try several queries in order)
+    // every other pick tries several queries in order)
     const g =
       pick._latlng ||
-      (pick._geoFallbacks
-        ? await geocodeFirst(pick._geoFallbacks)
-        : await geocodeCity(pick.geocode_query));
+      (await geocodeFirst(
+        pick._geoFallbacks || [pick.geocode_query, pick.city, pick.country]
+      ));
     const w = await getWeather(g.lat, g.lng);
     if (mySeq !== runSeq) return; // superseded by a newer search
     const wx = summarizeWeather(w);
