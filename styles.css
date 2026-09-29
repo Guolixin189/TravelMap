@@ -73,6 +73,24 @@ body {
 .hero > * {
   pointer-events: auto;
 }
+
+/* ========= Bottom prompt dock: search + chips, chat-style ========= */
+.prompt-dock {
+  position: fixed;
+  bottom: 22px;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.prompt-dock > * {
+  pointer-events: auto;
+}
 .hero-title {
   margin: 0;
   font-family: "Fredoka", "Quicksand", system-ui, sans-serif;
@@ -411,10 +429,10 @@ h3 {
   font-size: 15px;
 }
 
-/* Bottom result banner */
+/* Top result banner (kept clear of the bottom prompt dock) */
 .result-banner {
   position: fixed;
-  bottom: 26px;
+  top: 20px;
   left: 50%;
   transform: translateX(-50%);
   padding: 10px 18px;
@@ -485,5 +503,13 @@ h3 {
   }
   .hero {
     top: 14px;
+  }
+  .prompt-dock {
+    bottom: 16px;
+  }
+  /* Keep the zoom pills clear of the bottom dock on small screens */
+  #map .ol-zoom {
+    top: 70px;
+    bottom: auto;
   }
 }
