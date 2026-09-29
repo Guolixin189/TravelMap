@@ -1,4 +1,4 @@
-/* ========= 地图：OpenLayers 引擎 + Esri World Street Map 底图（免 Key） ========= */
+/* ========= Map: OpenLayers engine + Esri World Street Map tiles (keyless) ========= */
 const map = new ol.Map({
   target: "map",
   layers: [
@@ -18,7 +18,7 @@ const map = new ol.Map({
   }),
 });
 
-/* 脉冲标记：用 Overlay 在地图上挂一个 div，复用 CSS 里的脉冲动画 */
+/* Pulse marker: an Overlay div on the map, reusing the CSS pulse animation */
 const markerEl = document.createElement("div");
 markerEl.className = "pulse-marker";
 markerEl.innerHTML = '<div class="ring"></div><div class="dot"></div>';
@@ -30,7 +30,7 @@ const markerOverlay = new ol.Overlay({
 markerOverlay.setPosition(undefined);
 map.addOverlay(markerOverlay);
 
-/* 城市名小标签 */
+/* Small city-name label above the marker */
 const popupEl = document.createElement("div");
 popupEl.className = "marker-popup";
 popupEl.style.display = "none";
@@ -123,7 +123,7 @@ settingsToggle.onclick = () => {
 document.getElementById("saveApiKey").onclick = () => {
   localStorage.setItem("tms_api_key", apiKeyInput.value.trim());
   settingsPanel.hidden = true;
-  showResult("API Key 已保存 ✓");
+  showResult("API key saved ✓");
 };
 
 elPref.addEventListener("keydown", (e) => {
@@ -136,49 +136,78 @@ document.querySelectorAll(".chip").forEach((c) => {
     run();
   });
 });
-/* ========= AI 推荐（OpenRouter，免费模型）========
-   去 https://openrouter.ai/keys 注册并创建 Key，粘贴到页面左上角 ⚙️ 设置里。
-   免费模型以 ":free" 结尾，不消耗额度；想换模型改下面这一行即可。 */
+/* ========= AI recommendations (OpenRouter, free model) =========
+   Get a free key at https://openrouter.ai/keys and paste it into the
+   ⚙️ settings panel on the page. Free models end with ":free".
+   To change the model, edit the line below. */
 const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 
-/* ========= API key（用户在页面 ⚙️ 设置中填写，保存在本地浏览器） ========= */
+/* ========= API key (entered in the page's ⚙️ settings, stored in this browser) ========= */
 function getApiKey() {
   return (localStorage.getItem("tms_api_key") || "").trim();
 }
 
-async function askAI(prompt) {
+/* Web search costs OpenRouter credits even on free models, so it's only used
+   for factual questions — and if the account can't pay for it (402), we
+   silently fall back to the model's own knowledge for the rest of the session. */
+let webSearchWorks = null; // null = unknown, cached per session
+
+async function askAI(prompt, useWeb = false) {
   const key = getApiKey();
   if (!key) {
     throw new Error("NO_KEY");
   }
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + key,
-      "HTTP-Referer": location.origin,
-      "X-Title": "Take Me Somewhere",
-    },
-    body: JSON.stringify({
+  const wantWeb = useWeb && webSearchWorks !== false;
+
+  const doPost = async (withWeb) => {
+    const body = {
       model: OPENROUTER_MODEL,
       messages: [{ role: "user", content: prompt }],
-    }),
-  });
-  let data = null;
+    };
+    if (withWeb) body.plugins = [{ id: "web", max_results: 3 }];
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + key,
+        "HTTP-Referer": location.origin,
+        "X-Title": "Take Me Somewhere",
+      },
+      body: JSON.stringify(body),
+    });
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (e) {
+      throw new Error("The AI service returned something unexpected. Please try again.");
+    }
+    if (!res.ok) {
+      const msg = data?.error?.message || ("HTTP " + res.status);
+      const err = new Error("AI request failed (" + msg + ")");
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  };
+
   try {
-    data = await res.json();
+    const data = await doPost(wantWeb);
+    if (wantWeb) webSearchWorks = true;
+    return data;
   } catch (e) {
-    throw new Error("AI 服务返回异常，请稍后重试。");
+    if (
+      wantWeb &&
+      (e.status === 402 || /credit|payment|balance|insufficient/i.test(e.message))
+    ) {
+      webSearchWorks = false; // no credits for web search — use model knowledge
+      return doPost(false);
+    }
+    throw e;
   }
-  if (!res.ok) {
-    const msg = data?.error?.message || ("HTTP " + res.status);
-    throw new Error("AI 请求失败（" + msg + "）");
-  }
-  return data;
 }
 
 function buildPrompt(userPref, exclude = []) {
-  // 浏览器侧无法调采样温度，这里用随机盐值 + 排除清单来制造“每次不同”
+  // No sampling-temperature control client-side; use a random salt + exclusion list for variety.
   const salt = Math.random().toString(36).slice(2, 8);
 
   return `
@@ -214,8 +243,86 @@ Return EXACTLY this JSON and nothing else:
 `.trim();
 }
 
-function takeNextCityForQuery(prefKey, list) {
-  const rec = suggestCache.get(prefKey) || { list: [], idx: 0 };
+/* ========= Fact mode: "coldest place on earth" → ONE place, via web search =========
+   Factual questions get a single definitive answer instead of a city list. */
+const FACT_PATTERNS = [
+  /^(what|where|which)\b/i,
+  /\b(coldest|hottest|tallest|biggest|smallest|deepest|oldest|highest|longest|cheapest|wettest|driest)\b/i,
+  /\bmost\s+(beautiful|dangerous|expensive|popular|visited|remote|unusual)\b/i,
+  /place on earth/i,
+  /in the world/i,
+  /capital of/i,
+  /\bfilmed\b/i,
+];
+function looksFactual(q) {
+  const s = (q || "").trim();
+  if (s.length < 8) return false;
+  return FACT_PATTERNS.some((re) => re.test(s));
+}
+
+function buildFactPrompt(userQ) {
+  return `
+You are a travel researcher with web search. Output ONLY valid JSON. No prose, no code fences.
+
+User question:
+"${userQ}"
+
+Use the web search results to answer with ONE precise place.
+Return EXACTLY this JSON and nothing else:
+{
+  "place": "<precise place name, e.g. East Antarctic Plateau>",
+  "country": "<country or region in English>",
+  "geocode_query": "<most map-friendly name, e.g. Vostok Station, Antarctica>",
+  "short_reason": "<one sentence answering the user's question>",
+  "must_see": ["<Place1>","<Place2>","<Place3>"],
+  "vibe": ["<tag1>","<tag2>"],
+  "best_season": "<short season>",
+  "image_query": "<short query>"
+}
+
+Rules:
+- "place" is the true answer to the question.
+- "geocode_query" MUST be findable by a map geocoder: prefer a specific named
+  landmark, research station, town or city at or near the place.
+- Use ENGLISH names only.
+`.trim();
+}
+
+/* Normalize a fact-mode answer into the standard pick shape. */
+function normalizeFactPick(parsed) {
+  if (!parsed || typeof parsed !== "object") return null;
+  const place = (parsed.place || "").trim();
+  const gq = (parsed.geocode_query || "").trim();
+  if (!place || !gq) return null;
+  const country = (parsed.country || "").trim();
+  return {
+    city: place,
+    country,
+    geocode_query: gq,
+    short_reason: parsed.short_reason || "",
+    must_see: Array.isArray(parsed.must_see) ? parsed.must_see : [],
+    vibe: Array.isArray(parsed.vibe) ? parsed.vibe : [],
+    best_season: parsed.best_season || "—",
+    image_query: parsed.image_query || place,
+    _geoFallbacks: [gq, place, country].filter(Boolean),
+  };
+}
+
+/* Try several geocode queries in order; return the first that resolves. */
+async function geocodeFirst(queries) {
+  let lastErr = null;
+  for (const qq of queries) {
+    if (!qq) continue;
+    try {
+      return await geocodeCity(qq);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("Geocoding failed");
+}
+
+function takeNextCityForQuery(prefKey, list) {  const rec = suggestCache.get(prefKey) || { list: [], idx: 0 };
 
   if (Array.isArray(list) && list.length) {
     const seen = new Set();
@@ -641,7 +748,7 @@ function haversine(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); // km
 }
 
-/* ========= 抽屉照片轮播（Wikimedia Commons，不再盖住地图） ========= */
+/* ========= Drawer photo carousel (Wikimedia Commons, no longer covers the map) ========= */
 let photoImgs = [];
 let photoIdx = 0;
 const photoWrap = document.getElementById("photoWrap");
@@ -670,7 +777,7 @@ function showPhoto(i) {
 }
 async function renderPhotos(query, seq) {
   photoImgs = await wikimediaImages(query + " skyline", 8);
-  if (seq !== runSeq) return; // 已被更新的搜索取代，不再写入
+  if (seq !== runSeq) return; // superseded by a newer search — don't write
   if (!photoImgs.length) {
     photoWrap.hidden = true;
     return;
@@ -681,8 +788,9 @@ async function renderPhotos(query, seq) {
 document.getElementById("photoPrev").onclick = () => showPhoto(photoIdx - 1);
 document.getElementById("photoNext").onclick = () => showPhoto(photoIdx + 1);
 
-/* 感觉词启发式："warm beach"会被地理编码误命中为美国小镇Warm Beach, WA。
-   输入里带感觉词时跳过"直接飞"，走 AI/离线推荐。中文别名库不受影响。 */
+/* Mood-word heuristic: "warm beach" would otherwise geocode to the literal
+   town of Warm Beach, WA. Inputs containing mood words skip the direct
+   fly-to step and go to AI/offline recommendations instead. */
 const MOOD_HINTS = [
   "beach", "warm", "romantic", "aurora", "honeymoon", "snow", "mountain",
   "island", "tropical", "cozy", "relax", "chill", "sun", "sea", "sand",
@@ -695,7 +803,7 @@ function looksLikeMood(q) {
   return MOOD_HINTS.some((w) => s.includes(w.toLowerCase()));
 }
 
-/* 输入像城市名？先用 Open-Meteo 直接解析，直达那里 */
+/* Looks like a city name? Resolve it directly with Open-Meteo and fly there. */
 async function tryDirectCity(q) {
   if (!q || q.length > 48) return null;
   try {
@@ -716,7 +824,7 @@ async function tryDirectCity(q) {
   }
 }
 
-/* 直接命中的城市：如果本地库里有它，就补上景点/季节/氛围信息 */
+/* Direct-hit city: fill in sights/season/vibe from the local DB when available. */
 function buildDirectPick(d) {
   const local = typeof findCityByName === "function" ? findCityByName(d.name) : null;
   const country = d.country || local?.country || "";
@@ -733,12 +841,54 @@ function buildDirectPick(d) {
   };
 }
 
-let runSeq = 0; // 搜索序号：防止快速连搜时慢请求覆盖新结果
+/* Discover mode: a vibe → AI city list (cycles through on repeat searches),
+   with the local DB as fallback when there's no key or the AI fails. */
+async function discoverPick(q) {
+  const key = normKey(q);
+  const prev = suggestCache.get(key);
+  const exclude = prev?.list
+    ? prev.list
+        .map((x) =>
+          (x?.geocode_query || `${x?.city}, ${x?.country}` || "").trim()
+        )
+        .filter(Boolean)
+    : [];
+
+  let list = [];
+  let offline = false;
+  if (getApiKey()) {
+    try {
+      const aiRaw = await askAI(buildPrompt(q, exclude));
+      const parsed = extractJSON(aiRaw);
+      if (parsed?.cities && Array.isArray(parsed.cities)) {
+        list = parsed.cities;
+      } else if (parsed && typeof parsed === "object") {
+        list = [parsed];
+      }
+      list = list.filter(validatePick);
+    } catch (e) {
+      console.warn("AI recommendation failed, falling back to offline:", e);
+    }
+  }
+  if (!list.length) {
+    offline = true;
+    list =
+      typeof localRecommend === "function"
+        ? localRecommend(q, exclude).filter(validatePick)
+        : [];
+  }
+  if (!list.length) {
+    throw new Error("No matching place found — try another keyword.");
+  }
+  return { pick: takeNextCityForQuery(key, list), offline };
+}
+
+let runSeq = 0; // search sequence: drops stale results when searches overlap
 async function run() {
   const mySeq = ++runSeq;
   const q = elPref.value.trim();
   if (!q) {
-    showErr("输入一个城市名，或描述一种你想要的感觉。");
+    showErr("Type a city name — or describe the vibe you want.");
     return;
   }
 
@@ -750,70 +900,59 @@ async function run() {
     let pick = null;
     let offline = false;
 
-    // 1) 像城市名？直接飞过去（不走推荐）。带感觉词的输入跳过这步。
+    // 1) Looks like a city name? Fly straight there (skip recommendations).
+    //    Inputs containing mood words skip this step.
     const direct = looksLikeMood(q) ? null : await tryDirectCity(q);
     if (direct) {
       pick = buildDirectPick(direct);
     } else if (typeof findCityByAlias === "function" && findCityByAlias(q)) {
-      // 2) 中文别名 / 本地库精确命中（比如"巴黎"）
+      // 2) Alias / local-DB exact hit (e.g. "Paris")
       pick = findCityByAlias(q);
       offline = true;
     } else {
-      // 3) 否则当成"感觉"：AI 推荐，失败则本地库兜底
-      const key = normKey(q);
-      const prev = suggestCache.get(key);
-      const exclude = prev?.list
-        ? prev.list
-            .map((x) =>
-              (x?.geocode_query || `${x?.city}, ${x?.country}` || "").trim()
-            )
-            .filter(Boolean)
-        : [];
-
-      let list = [];
-      if (getApiKey()) {
+      // 3) Factual question ("coldest place on earth")? AI + web search → THE answer.
+      if (looksFactual(q) && getApiKey()) {
         try {
-          const aiRaw = await askAI(buildPrompt(q, exclude));
-          const parsed = extractJSON(aiRaw);
-          if (parsed?.cities && Array.isArray(parsed.cities)) {
-            list = parsed.cities;
-          } else if (parsed && typeof parsed === "object") {
-            list = [parsed];
-          }
-          list = list.filter(validatePick);
+          const aiRaw = await askAI(buildFactPrompt(q), /* useWeb */ true);
+          pick = normalizeFactPick(extractJSON(aiRaw));
+          if (pick && !validatePick(pick)) pick = null;
         } catch (e) {
-          console.warn("AI 推荐失败，切换本地离线推荐：", e);
+          console.warn("Fact lookup failed, falling back to discovery:", e);
+          pick = null;
         }
       }
-      if (!list.length) {
-        offline = true;
-        list = localRecommend(q, exclude).filter(validatePick);
+      // 4) Otherwise (or fact mode failed): vibe discovery.
+      if (!pick) {
+        const res = await discoverPick(q);
+        pick = res.pick;
+        offline = res.offline;
       }
-      if (!list.length) {
-        throw new Error("没有匹配到城市，换个关键词试试吧。");
-      }
-      pick = takeNextCityForQuery(key, list);
     }
 
     if (!pick || !validatePick(pick)) {
-      throw new Error("没有匹配到城市，换个关键词试试吧。");
+      throw new Error("No matching place found — try another keyword.");
     }
 
-    // 轻提示（离线模式会标注出来）
+    // Small toast (offline mode is labeled)
     try {
       showResult(
-        (offline ? "（离线推荐）" : "") +
+        (offline ? "(Offline pick) " : "") +
           (pick.city || pick.geocode_query || "(no city returned)")
       );
     } catch {}
 
-    // 地理编码（直接命中的城市已自带坐标）
-    const g = pick._latlng || (await geocodeCity(pick.geocode_query));
+    // Geocode (direct-hit cities already carry coordinates;
+    // fact answers try several queries in order)
+    const g =
+      pick._latlng ||
+      (pick._geoFallbacks
+        ? await geocodeFirst(pick._geoFallbacks)
+        : await geocodeCity(pick.geocode_query));
     const w = await getWeather(g.lat, g.lng);
-    if (mySeq !== runSeq) return; // 已被更新的搜索取代
+    if (mySeq !== runSeq) return; // superseded by a newer search
     const wx = summarizeWeather(w);
 
-    // DOM 注入
+    // Inject into the DOM
     document.getElementById("weatherNow").textContent = wx.desc || "—";
     document.getElementById("tempNow").textContent = `${wx.tempC}°C`;
     document.getElementById("humidityNow").textContent = `${wx.humidity}%`;
@@ -823,22 +962,22 @@ async function run() {
     document.getElementById("vibe").textContent =
       (pick.vibe || []).join(" • ") || "—";
 
-    // 地图：飞过去 + 脉冲标记
+    // Map: fly there + pulse marker
     flyToCity(
       g.lat,
       g.lng,
       `<b>${pick.city}</b>${pick.country ? ", " + pick.country : ""}`
     );
 
-    // 标题与景点
+    // Title and sights
     cityTitle.textContent = pick.country
       ? `${pick.city}, ${pick.country}`
       : pick.city;
     sights.innerHTML =
       (pick.must_see || []).map((s) => `<li>${s}</li>`).join("") ||
-      "<li>在地图上探索这座城市吧 🗺️</li>";
+      "<li>Explore it on the map 🗺️</li>";
 
-    // 距离
+    // Distance
     if (userLoc) {
       const km = haversine(userLoc.lat, userLoc.lng, g.lat, g.lng);
       distance.textContent = `${km.toFixed(0)} km from your location`;
@@ -846,12 +985,12 @@ async function run() {
       distance.textContent = "Location permission not granted";
     }
 
-    // 照片轮播（不阻塞抽屉打开）
+    // Photo carousel (doesn't block the drawer from opening)
     renderPhotos(pick.image_query || `${pick.city} skyline`, mySeq);
 
     drawer.classList.add("open");
   } catch (e) {
-    if (mySeq !== runSeq) return; // 已被更新的搜索取代，不报错
+    if (mySeq !== runSeq) return; // superseded by a newer search — stay quiet
     console.error("[AI/Geo/Weather error]", e);
     showErr(e.message || "Something went wrong.");
   }
