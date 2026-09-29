@@ -279,6 +279,7 @@ body {
 }
 
 .settings-toggle {
+  display: none; /* hidden from visitors; owners open settings via title Easter egg */
   position: fixed;
   top: 16px;
   left: 16px;
