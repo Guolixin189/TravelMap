@@ -9,6 +9,12 @@
       href="https://cdn.jsdelivr.net/npm/ol@10/ol.css"
       rel="stylesheet"
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link href="styles.css" rel="stylesheet" />
   </head>
   <body>
@@ -21,19 +27,20 @@
           <input
             id="pref"
             type="text"
-            placeholder="输入城市名，直达那里… 比如 Kyoto、巴黎、Santorini"
+            placeholder='Where to? Try a city — or "coldest place on earth"…'
             autocomplete="off"
           />
-          <button id="go">出发 ✈</button>
+          <button id="go">Take me ✈</button>
         </div>
         <div id="err" class="err" hidden></div>
       </div>
       <div class="chips">
-        <span class="chips-label">没灵感？试试</span>
+        <span class="chips-label">Need inspiration?</span>
         <button class="chip" data-q="warm beach">🏖️ warm beach</button>
-        <button class="chip" data-q="极光">🌌 极光</button>
-        <button class="chip" data-q="蜜月">💕 蜜月</button>
-        <button class="chip" data-q="雪山">🏔️ 雪山</button>
+        <button class="chip" data-q="aurora">🌌 aurora</button>
+        <button class="chip" data-q="honeymoon">💕 honeymoon</button>
+        <button class="chip" data-q="snowy peaks">🏔️ snowy peaks</button>
+        <button class="chip" data-q="coldest place on earth">❄️ coldest place on earth</button>
       </div>
     </header>
 
@@ -51,22 +58,24 @@
         <input
           id="apiKeyInput"
           type="password"
-          placeholder="粘贴你的 API Key"
+          placeholder="Paste your API key"
           autocomplete="off"
         />
       </label>
-      <button id="saveApiKey" class="settings-save">保存</button>
+      <button id="saveApiKey" class="settings-save">Save</button>
       <p class="settings-hint">
-        去 <b>openrouter.ai/keys</b> 免费注册并创建 Key，粘贴到上面。<br />Key
-        只保存在本机浏览器，不填也能用（自动切换离线推荐）。
+        Get a free key at <b>openrouter.ai/keys</b> and paste it above.<br />The
+        key stays in this browser only. Without a key, the site falls back to
+        offline picks.<br />Factual questions (e.g. "coldest place on earth")
+        use AI web search when a key is set.
       </p>
     </div>
 
     <aside id="drawer" class="drawer" aria-label="City information panel">
       <div class="photo-wrap" id="photoWrap" hidden>
         <img id="photoImg" alt="City photo" />
-        <button id="photoPrev" class="photo-nav prev" title="上一张">‹</button>
-        <button id="photoNext" class="photo-nav next" title="下一张">›</button>
+        <button id="photoPrev" class="photo-nav prev" title="Previous">‹</button>
+        <button id="photoNext" class="photo-nav next" title="Next">›</button>
         <span id="photoCount" class="photo-count"></span>
       </div>
 
