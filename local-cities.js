@@ -1,6 +1,6 @@
-/* ========= 本地城市库：AI 不可用时的离线兜底推荐 =========
-   每个城市带 tags（英文关键词），localRecommend() 按关键词匹配打分。
-   ZH_KEYWORDS 把常见中文词映射到英文 tag，方便中文输入。 */
+/* ========= Local city DB: offline fallback when the AI is unavailable =========
+   Each city carries tags (English keywords); localRecommend() scores by keyword match.
+   ZH_KEYWORDS maps common Chinese words to English tags for Chinese input. */
 
 const LOCAL_CITIES = [
   { city: "Kyoto", country: "Japan", geocode_query: "Kyoto, Japan",
@@ -185,7 +185,7 @@ const LOCAL_CITIES = [
     aliases: ['阿马尔菲'] },
 ];
 
-/* 中文关键词 → 英文 tag 映射 */
+/* Chinese keywords → English tag mapping (kept for Chinese input) */
 const ZH_KEYWORDS = {
   "海滩": "beach", "海岛": "island", "海": "sea", "沙滩": "beach",
   "浪漫": "romantic", "蜜月": "honeymoon", "情侣": "romantic",
@@ -240,7 +240,7 @@ function localRecommend(query, exclude = []) {
   return picks.slice(0, 8);
 }
 
-/* 按英文名或中文别名精确查找城市（直接输入城市名时用） */
+/* Find a city by English name or Chinese alias (used for direct city input) */
 function findCityByName(name) {
   const n = (name || "").trim().toLowerCase();
   if (!n) return null;
