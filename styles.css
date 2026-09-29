@@ -24,7 +24,7 @@ body {
   z-index: 0;
 }
 
-/* 脉冲标记 */
+/* Pulse marker */
 .pulse-marker {
   position: relative;
   width: 22px;
@@ -56,7 +56,7 @@ body {
   }
 }
 
-/* ========= 顶部 Hero：大标题 + 搜索 ========= */
+/* ========= Top hero: big title + search ========= */
 .hero {
   position: fixed;
   top: 26px;
@@ -75,9 +75,10 @@ body {
 }
 .hero-title {
   margin: 0;
-  font-size: clamp(30px, 5vw, 52px);
-  font-weight: 800;
-  letter-spacing: 0.5px;
+  font-family: "Fredoka", "Quicksand", system-ui, sans-serif;
+  font-size: clamp(32px, 5.4vw, 56px);
+  font-weight: 600;
+  letter-spacing: 1px;
   color: #fff;
   text-shadow: 0 2px 18px rgba(0, 40, 80, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
 }
@@ -126,8 +127,10 @@ body {
   border-radius: 999px;
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
-  font-size: 16px;
-  font-weight: 700;
+  font-family: "Fredoka", system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
   cursor: pointer;
   white-space: nowrap;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -146,7 +149,7 @@ body {
   font-size: 14px;
 }
 
-/* 灵感 chips */
+/* Inspiration chips */
 .chips {
   display: flex;
   align-items: center;
@@ -178,7 +181,7 @@ body {
   transform: translateY(-1px);
 }
 
-/* ========= 右侧信息抽屉 ========= */
+/* ========= Right info drawer ========= */
 .drawer {
   position: fixed;
   top: 0;
@@ -212,7 +215,7 @@ body {
   cursor: pointer;
 }
 
-/* 抽屉顶部照片轮播 */
+/* Photo carousel at the top of the drawer */
 .photo-wrap {
   position: relative;
   margin: -20px -20px 16px;
@@ -408,7 +411,7 @@ h3 {
   font-size: 15px;
 }
 
-/* 底部结果横幅 */
+/* Bottom result banner */
 .result-banner {
   position: fixed;
   bottom: 26px;
@@ -426,14 +429,14 @@ h3 {
   white-space: nowrap;
 }
 
-/* ========= OpenLayers 控件 & 标记 ========= */
+/* ========= OpenLayers controls & marker ========= */
 #map .ol-viewport {
   cursor: grab;
 }
 #map .ol-viewport:active {
   cursor: grabbing;
 }
-/* 缩放按钮：挪到底部左边，药丸风格 */
+/* Zoom buttons: bottom-left, pill style */
 #map .ol-zoom {
   top: auto;
   bottom: 26px;
@@ -462,7 +465,7 @@ h3 {
   font-size: 11px;
   border-radius: 8px 0 0 0;
 }
-/* 城市名小标签 */
+/* City-name label */
 .marker-popup {
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid #e3ecf5;
