@@ -1,30 +1,64 @@
-let map = L.map("map", {
-  worldCopyJump: true,
-  minZoom: 2,
-  zoomControl: true,
-}).setView([22, 8], 2.4);
+/* ========= 地图：OpenLayers 引擎 + Esri World Street Map 底图（免 Key） ========= */
+const map = new ol.Map({
+  target: "map",
+  layers: [
+    new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+        maxZoom: 19,
+        attributions:
+          'Tiles © <a href="https://www.esri.com/">Esri</a> — Source: Esri, TomTom, Garmin, FAO, NOAA, USGS',
+      }),
+    }),
+  ],
+  view: new ol.View({
+    center: ol.proj.fromLonLat([8, 22]),
+    zoom: 2.4,
+    minZoom: 2,
+  }),
+});
 
-/* 干净现代的底图，让世界地图本身成为主角 */
-L.tileLayer(
-  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-  {
-    maxZoom: 19,
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
-).addTo(map);
+/* 脉冲标记：用 Overlay 在地图上挂一个 div，复用 CSS 里的脉冲动画 */
+const markerEl = document.createElement("div");
+markerEl.className = "pulse-marker";
+markerEl.innerHTML = '<div class="ring"></div><div class="dot"></div>';
+const markerOverlay = new ol.Overlay({
+  element: markerEl,
+  positioning: "center-center",
+  stopEvent: false,
+});
+markerOverlay.setPosition(undefined);
+map.addOverlay(markerOverlay);
 
-let cityMarker = null;
+/* 城市名小标签 */
+const popupEl = document.createElement("div");
+popupEl.className = "marker-popup";
+popupEl.style.display = "none";
+const popupOverlay = new ol.Overlay({
+  element: popupEl,
+  positioning: "bottom-center",
+  offset: [0, -20],
+  stopEvent: false,
+});
+popupOverlay.setPosition(undefined);
+map.addOverlay(popupOverlay);
 
-/* 脉冲标记：比默认图钉更醒目 */
-function makePulseMarker(lat, lng) {
-  const icon = L.divIcon({
-    className: "",
-    html: '<div class="pulse-marker"><div class="ring"></div><div class="dot"></div></div>',
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-  });
-  return L.marker([lat, lng], { icon });
+function setMarkerLabel(html) {
+  if (!html) {
+    popupEl.style.display = "none";
+    popupOverlay.setPosition(undefined);
+    return;
+  }
+  popupEl.innerHTML = html;
+  popupEl.style.display = "";
+}
+
+function flyToCity(lat, lng, labelHtml) {
+  const pos = ol.proj.fromLonLat([lng, lat]);
+  map.getView().animate({ center: pos, zoom: 11, duration: 2200 });
+  markerOverlay.setPosition(pos);
+  popupOverlay.setPosition(pos);
+  setMarkerLabel(labelHtml);
 }
 
 async function fetchJSON(url, opts = {}) {
@@ -39,7 +73,7 @@ async function fetchJSON(url, opts = {}) {
         console.warn(
           "Expected JSON but parse failed for:",
           url,
-          text.slice(0, 300),
+          text.slice(0, 300)
         );
         throw new Error("Invalid JSON from " + url);
       }
@@ -137,14 +171,14 @@ async function askAI(prompt) {
     throw new Error("AI 服务返回异常，请稍后重试。");
   }
   if (!res.ok) {
-    const msg = data?.error?.message || "HTTP " + res.status;
+    const msg = data?.error?.message || ("HTTP " + res.status);
     throw new Error("AI 请求失败（" + msg + "）");
   }
   return data;
 }
 
 function buildPrompt(userPref, exclude = []) {
-  // 浏览器侧无法调采样温度，这里用随机盐值 + 排除清单来制造"每次不同"
+  // 浏览器侧无法调采样温度，这里用随机盐值 + 排除清单来制造“每次不同”
   const salt = Math.random().toString(36).slice(2, 8);
 
   return `
@@ -365,19 +399,19 @@ async function geocodeCity(q) {
   }
   try {
     const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-      q,
+      q
     )}&limit=1&addressdetails=1&accept-language=en`;
     window.__lastGeocodeRaw = JSON.stringify(
       { url: nomUrl, raw: null, status: "attempting_nominatim" },
       null,
-      2,
+      2
     );
     const nom = await fetchJSON(nomUrl);
     try {
       window.__lastGeocodeRaw = JSON.stringify(
         { url: nomUrl, raw: nom },
         null,
-        2,
+        2
       );
     } catch (e) {
       window.__lastGeocodeRaw = String(nom);
@@ -394,7 +428,7 @@ async function geocodeCity(q) {
       window.__lastGeocodeRaw = JSON.stringify(
         { nominatim_error: String(e) },
         null,
-        2,
+        2
       );
     } catch (e2) {
       window.__lastGeocodeRaw = String(e);
@@ -403,19 +437,19 @@ async function geocodeCity(q) {
 
   try {
     const openMeteoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-      q,
+      q
     )}&count=1&language=en&format=json`;
     window.__lastGeocodeRaw = JSON.stringify(
       { url: openMeteoUrl, raw: null, status: "attempting_openmeteo" },
       null,
-      2,
+      2
     );
     const om = await fetchJSON(openMeteoUrl);
     try {
       window.__lastGeocodeRaw = JSON.stringify(
         { url: openMeteoUrl, raw: om },
         null,
-        2,
+        2
       );
     } catch (e) {
       window.__lastGeocodeRaw = String(om);
@@ -432,7 +466,7 @@ async function geocodeCity(q) {
       window.__lastGeocodeRaw = JSON.stringify(
         { openmeteo_error: String(e) },
         null,
-        2,
+        2
       );
     } catch (e2) {
       window.__lastGeocodeRaw = String(e);
@@ -593,7 +627,7 @@ if (navigator.geolocation) {
     () => {
       userLoc = null;
     },
-    { enableHighAccuracy: true, timeout: 5000 },
+    { enableHighAccuracy: true, timeout: 5000 }
   );
 }
 function haversine(lat1, lon1, lat2, lon2) {
@@ -616,7 +650,7 @@ const photoCount = document.getElementById("photoCount");
 
 async function wikimediaImages(query, count = 6) {
   const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(
-    query,
+    query
   )}&gsrnamespace=6&gsrlimit=${count}&prop=imageinfo&iiprop=url&iiurlwidth=1600&format=json&origin=*`;
   try {
     const j = await fetchJSON(url);
@@ -634,8 +668,9 @@ function showPhoto(i) {
   photoImg.src = photoImgs[photoIdx];
   photoCount.textContent = `${photoIdx + 1} / ${photoImgs.length}`;
 }
-async function renderPhotos(query) {
+async function renderPhotos(query, seq) {
   photoImgs = await wikimediaImages(query + " skyline", 8);
+  if (seq !== runSeq) return; // 已被更新的搜索取代，不再写入
   if (!photoImgs.length) {
     photoWrap.hidden = true;
     return;
@@ -646,12 +681,26 @@ async function renderPhotos(query) {
 document.getElementById("photoPrev").onclick = () => showPhoto(photoIdx - 1);
 document.getElementById("photoNext").onclick = () => showPhoto(photoIdx + 1);
 
+/* 感觉词启发式："warm beach"会被地理编码误命中为美国小镇Warm Beach, WA。
+   输入里带感觉词时跳过"直接飞"，走 AI/离线推荐。中文别名库不受影响。 */
+const MOOD_HINTS = [
+  "beach", "warm", "romantic", "aurora", "honeymoon", "snow", "mountain",
+  "island", "tropical", "cozy", "relax", "chill", "sun", "sea", "sand",
+  "nightlife", "foodie", "adventure", "desert", "lake", "hot spring",
+  "极光", "蜜月", "雪山", "海滩", "海岛", "温暖", "浪漫", "美食",
+  "夜生活", "古镇", "沙漠", "草原", "温泉", "看海", "滑雪", "潜水",
+];
+function looksLikeMood(q) {
+  const s = (q || "").toLowerCase();
+  return MOOD_HINTS.some((w) => s.includes(w.toLowerCase()));
+}
+
 /* 输入像城市名？先用 Open-Meteo 直接解析，直达那里 */
 async function tryDirectCity(q) {
   if (!q || q.length > 48) return null;
   try {
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-      q,
+      q
     )}&count=1&language=en&format=json`;
     const j = await fetchJSON(url);
     const r = j?.results?.[0];
@@ -669,8 +718,7 @@ async function tryDirectCity(q) {
 
 /* 直接命中的城市：如果本地库里有它，就补上景点/季节/氛围信息 */
 function buildDirectPick(d) {
-  const local =
-    typeof findCityByName === "function" ? findCityByName(d.name) : null;
+  const local = typeof findCityByName === "function" ? findCityByName(d.name) : null;
   const country = d.country || local?.country || "";
   return {
     city: d.name,
@@ -685,7 +733,9 @@ function buildDirectPick(d) {
   };
 }
 
+let runSeq = 0; // 搜索序号：防止快速连搜时慢请求覆盖新结果
 async function run() {
+  const mySeq = ++runSeq;
   const q = elPref.value.trim();
   if (!q) {
     showErr("输入一个城市名，或描述一种你想要的感觉。");
@@ -700,19 +750,22 @@ async function run() {
     let pick = null;
     let offline = false;
 
-    const direct = await tryDirectCity(q);
+    // 1) 像城市名？直接飞过去（不走推荐）。带感觉词的输入跳过这步。
+    const direct = looksLikeMood(q) ? null : await tryDirectCity(q);
     if (direct) {
       pick = buildDirectPick(direct);
     } else if (typeof findCityByAlias === "function" && findCityByAlias(q)) {
+      // 2) 中文别名 / 本地库精确命中（比如"巴黎"）
       pick = findCityByAlias(q);
       offline = true;
     } else {
+      // 3) 否则当成"感觉"：AI 推荐，失败则本地库兜底
       const key = normKey(q);
       const prev = suggestCache.get(key);
       const exclude = prev?.list
         ? prev.list
             .map((x) =>
-              (x?.geocode_query || `${x?.city}, ${x?.country}` || "").trim(),
+              (x?.geocode_query || `${x?.city}, ${x?.country}` || "").trim()
             )
             .filter(Boolean)
         : [];
@@ -750,13 +803,14 @@ async function run() {
     try {
       showResult(
         (offline ? "（离线推荐）" : "") +
-          (pick.city || pick.geocode_query || "(no city returned)"),
+          (pick.city || pick.geocode_query || "(no city returned)")
       );
     } catch {}
 
     // 地理编码（直接命中的城市已自带坐标）
     const g = pick._latlng || (await geocodeCity(pick.geocode_query));
     const w = await getWeather(g.lat, g.lng);
+    if (mySeq !== runSeq) return; // 已被更新的搜索取代
     const wx = summarizeWeather(w);
 
     // DOM 注入
@@ -770,14 +824,11 @@ async function run() {
       (pick.vibe || []).join(" • ") || "—";
 
     // 地图：飞过去 + 脉冲标记
-    map.flyTo([g.lat, g.lng], 11, { duration: 2.2 });
-    if (cityMarker) cityMarker.remove();
-    cityMarker = makePulseMarker(g.lat, g.lng)
-      .addTo(map)
-      .bindPopup(
-        `<b>${pick.city}</b>${pick.country ? ", " + pick.country : ""}`,
-      )
-      .openPopup();
+    flyToCity(
+      g.lat,
+      g.lng,
+      `<b>${pick.city}</b>${pick.country ? ", " + pick.country : ""}`
+    );
 
     // 标题与景点
     cityTitle.textContent = pick.country
@@ -796,10 +847,11 @@ async function run() {
     }
 
     // 照片轮播（不阻塞抽屉打开）
-    renderPhotos(pick.image_query || `${pick.city} skyline`);
+    renderPhotos(pick.image_query || `${pick.city} skyline`, mySeq);
 
     drawer.classList.add("open");
   } catch (e) {
+    if (mySeq !== runSeq) return; // 已被更新的搜索取代，不报错
     console.error("[AI/Geo/Weather error]", e);
     showErr(e.message || "Something went wrong.");
   }
