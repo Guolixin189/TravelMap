@@ -57,9 +57,10 @@ body {
 }
 
 /* ========= Top hero: big title + search ========= */
-.hero {
+/* ========= Bottom stack: title sits above the search dock, chat-style ========= */
+.bottom-stack {
   position: fixed;
-  top: 26px;
+  bottom: 22px;
   left: 0;
   right: 0;
   z-index: 1000;
@@ -70,22 +71,24 @@ body {
   padding: 0 16px;
   pointer-events: none;
 }
+.bottom-stack > * {
+  pointer-events: auto;
+}
+.hero {
+  text-align: center;
+  pointer-events: none;
+}
 .hero > * {
   pointer-events: auto;
 }
 
 /* ========= Bottom prompt dock: search + chips, chat-style ========= */
 .prompt-dock {
-  position: fixed;
-  bottom: 22px;
-  left: 0;
-  right: 0;
-  z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 0 16px;
+  width: 100%;
   pointer-events: none;
 }
 .prompt-dock > * {
@@ -94,7 +97,7 @@ body {
 .hero-title {
   margin: 0;
   font-family: "Fredoka", "Quicksand", system-ui, sans-serif;
-  font-size: clamp(32px, 5.4vw, 56px);
+  font-size: clamp(28px, 4.6vw, 46px);
   font-weight: 600;
   letter-spacing: 1px;
   color: #fff;
@@ -502,11 +505,9 @@ h3 {
   .drawer {
     width: min(90vw, 480px);
   }
-  .hero {
-    top: 14px;
-  }
-  .prompt-dock {
-    bottom: 16px;
+  .bottom-stack {
+    bottom: 14px;
+    gap: 10px;
   }
   /* Keep the zoom pills clear of the bottom dock on small screens */
   #map .ol-zoom {
