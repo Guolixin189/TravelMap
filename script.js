@@ -1,22 +1,13 @@
-/* ========= Map: OpenLayers + Esri World Imagery (satellite, keyless) =========
-   Satellite instead of street maps: this site flies to remote places
-   (Antarctica, deserts…) where street tiles render "Map data not yet
-   available" placeholders. A labels overlay keeps place names readable. */
+/* ========= Map: OpenLayers + OpenStreetMap Standard (keyless) =========
+   Muted cartographic style with true global coverage — no "Map data not yet
+   available" placeholders even in remote areas (Antarctica, deserts…). */
 const map = new ol.Map({
   target: "map",
   layers: [
     new ol.layer.Tile({
-      source: new ol.source.XYZ({
-        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        maxZoom: 19,
+      source: new ol.source.OSM({
         attributions:
-          'Imagery © <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics',
-      }),
-    }),
-    new ol.layer.Tile({
-      source: new ol.source.XYZ({
-        url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-        maxZoom: 19,
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }),
     }),
   ],
@@ -957,12 +948,9 @@ async function run() {
       throw new Error("No matching place found — try another keyword.");
     }
 
-    // Small toast (offline mode is labeled)
+    // Small toast
     try {
-      showResult(
-        (offline ? "(Offline pick) " : "") +
-          (pick.city || pick.geocode_query || "(no city returned)")
-      );
+      showResult(pick.city || pick.geocode_query || "(no city returned)");
     } catch {}
 
     // Geocode (direct-hit cities already carry coordinates;
