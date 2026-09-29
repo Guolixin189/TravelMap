@@ -135,6 +135,21 @@ document.getElementById("saveApiKey").onclick = () => {
   showResult("API key saved ✓");
 };
 
+/* Hidden settings access: click the title 5 times within 2s to toggle the panel.
+   The gear button is hidden from visitors via CSS. */
+let titleClicks = 0;
+let titleClickTimer = null;
+document.querySelector(".hero-title").addEventListener("click", () => {
+  titleClicks++;
+  clearTimeout(titleClickTimer);
+  titleClickTimer = setTimeout(() => (titleClicks = 0), 2000);
+  if (titleClicks >= 5) {
+    titleClicks = 0;
+    apiKeyInput.value = getApiKey();
+    settingsPanel.hidden = !settingsPanel.hidden;
+  }
+});
+
 elPref.addEventListener("keydown", (e) => {
   if (e.key === "Enter") run();
 });
