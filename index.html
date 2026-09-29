@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Take Me Somewhere</title>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link href="styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <header class="hero">
+      <h1 class="hero-title">
+        Take Me Somewhere <span class="plane">✈️</span>
+      </h1>
+      <div class="search-bar">
+        <div class="search-inner">
+          <input
+            id="pref"
+            type="text"
+            placeholder="输入城市名，直达那里… 比如 Kyoto、巴黎、Santorini"
+            autocomplete="off"
+          />
+          <button id="go">出发 ✈</button>
+        </div>
+        <div id="err" class="err" hidden></div>
+      </div>
+      <div class="chips">
+        <span class="chips-label">没灵感？试试</span>
+        <button class="chip" data-q="warm beach">🏖️ warm beach</button>
+        <button class="chip" data-q="极光">🌌 极光</button>
+        <button class="chip" data-q="蜜月">💕 蜜月</button>
+        <button class="chip" data-q="雪山">🏔️ 雪山</button>
+      </div>
+    </header>
+
+    <button id="drawerToggle" class="drawer-toggle" title="City info">
+      City info ▸
+    </button>
+
+    <button id="settingsToggle" class="settings-toggle" title="Settings">
+      ⚙️
+    </button>
+    <div id="settings" class="settings" hidden>
+      <h3>Settings</h3>
+      <label class="settings-row">
+        <span>API Key</span>
+        <input
+          id="apiKeyInput"
+          type="password"
+          placeholder="API Key"
+          autocomplete="off"
+        />
+      </label>
+      <button id="saveApiKey" class="settings-save">保存</button>
+    </div>
+
+    <aside id="drawer" class="drawer" aria-label="City information panel">
+      <div class="photo-wrap" id="photoWrap" hidden>
+        <img id="photoImg" alt="City photo" />
+        <button id="photoPrev" class="photo-nav prev" title="上一张">‹</button>
+        <button id="photoNext" class="photo-nav next" title="下一张">›</button>
+        <span id="photoCount" class="photo-count"></span>
+      </div>
+
+      <div class="drawer-head">
+        <h2 id="cityTitle">—</h2>
+        <button id="closeDrawer" class="close">✕</button>
+      </div>
+
+      <section class="info">
+        <div class="info-list">
+          <div class="info-item">
+            <div class="info-left">
+              <span class="info-ico">🌤️</span
+              ><span class="info-label">Weather</span>
+            </div>
+            <div class="info-val" id="weatherNow">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-left">
+              <span class="info-ico">🌡️</span
+              ><span class="info-label">Temperature</span>
+            </div>
+            <div class="info-val" id="tempNow">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-left">
+              <span class="info-ico">💧</span
+              ><span class="info-label">Humidity</span>
+            </div>
+            <div class="info-val" id="humidityNow">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-left">
+              <span class="info-ico">💨</span
+              ><span class="info-label">Wind</span>
+            </div>
+            <div class="info-val" id="windNow">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-left">
+              <span class="info-ico">🧭</span
+              ><span class="info-label">Distance</span>
+            </div>
+            <div class="info-val" id="distance">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-left">
+              <span class="info-ico">🗓️</span
+              ><span class="info-label">Best Season</span>
+            </div>
+            <div class="info-val" id="bestSeason">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-left">
+              <span class="info-ico">🎭</span
+              ><span class="info-label">Vibe</span>
+            </div>
+            <div class="info-val" id="vibe">—</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="top">
+        <h3>📸 Top Sights</h3>
+        <ul id="sights"></ul>
+      </section>
+    </aside>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="local-cities.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
