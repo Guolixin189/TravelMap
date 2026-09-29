@@ -183,6 +183,27 @@ const LOCAL_CITIES = [
     vibe: ["romantic", "coastal"], best_season: "May–Sep", image_query: "Amalfi",
     tags: ["romantic", "beach", "sea", "europe", "scenic", "honeymoon", "coast"],
     aliases: ['阿马尔菲'] },
+  /* --- Extreme places: so offline mode can answer "X-est place on earth" --- */
+  { city: "Vostok Station", country: "Antarctica", geocode_query: "Vostok Station, Antarctica",
+    short_reason: "The coldest place on Earth — once hit -89.2°C.",
+    must_see: ["Vostok Station", "East Antarctic Plateau", "South Pole traverse"],
+    vibe: ["extreme", "remote"], best_season: "Nov–Feb (Antarctic summer)", image_query: "Vostok Station Antarctica",
+    tags: ["coldest", "cold", "snow", "extreme", "winter", "pole", "remote", "adventure"] },
+  { city: "Death Valley", country: "United States", geocode_query: "Death Valley, United States",
+    short_reason: "The hottest place on Earth — 56.7°C recorded here.",
+    must_see: ["Badwater Basin", "Mesquite Flat Sand Dunes", "Zabriskie Point"],
+    vibe: ["extreme", "desert"], best_season: "Oct–Apr", image_query: "Death Valley",
+    tags: ["hottest", "hot", "desert", "extreme", "dry", "adventure"] },
+  { city: "Mount Everest", country: "Nepal", geocode_query: "Mount Everest, Nepal",
+    short_reason: "The tallest mountain on Earth at 8,849 m.",
+    must_see: ["Everest Base Camp", "Kala Patthar", "Namche Bazaar"],
+    vibe: ["extreme", "mountain"], best_season: "Mar–May, Sep–Nov", image_query: "Mount Everest",
+    tags: ["tallest", "highest", "mountain", "extreme", "snow", "hiking", "adventure"] },
+  { city: "Atacama Desert", country: "Chile", geocode_query: "Atacama Desert, Chile",
+    short_reason: "The driest place on Earth — some parts never see rain.",
+    must_see: ["Valle de la Luna", "El Tatio geysers", "San Pedro de Atacama"],
+    vibe: ["extreme", "desert"], best_season: "Year-round", image_query: "Atacama Desert",
+    tags: ["driest", "dry", "desert", "extreme", "remote"] },
 ];
 
 /* Chinese keywords → English tag mapping (kept for Chinese input) */
