@@ -1,13 +1,22 @@
-/* ========= Map: OpenLayers engine + Esri World Street Map tiles (keyless) ========= */
+/* ========= Map: OpenLayers + Esri World Imagery (satellite, keyless) =========
+   Satellite instead of street maps: this site flies to remote places
+   (Antarctica, deserts…) where street tiles render "Map data not yet
+   available" placeholders. A labels overlay keeps place names readable. */
 const map = new ol.Map({
   target: "map",
   layers: [
     new ol.layer.Tile({
       source: new ol.source.XYZ({
-        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         maxZoom: 19,
         attributions:
-          'Tiles © <a href="https://www.esri.com/">Esri</a> — Source: Esri, TomTom, Garmin, FAO, NOAA, USGS',
+          'Imagery © <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics',
+      }),
+    }),
+    new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        maxZoom: 19,
       }),
     }),
   ],
