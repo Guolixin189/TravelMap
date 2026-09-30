@@ -155,7 +155,7 @@ document.querySelectorAll(".chip").forEach((c) => {
    Get a free key at https://openrouter.ai/keys and paste it into the
    ⚙️ settings panel on the page. Free models end with ":free".
    To change the model, edit the line below. */
-const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+const OPENROUTER_MODEL = "qwen/qwen3.8-27b:free";
 
 /* ========= API key (entered in the page's ⚙️ settings, stored in this browser) ========= */
 function getApiKey() {
